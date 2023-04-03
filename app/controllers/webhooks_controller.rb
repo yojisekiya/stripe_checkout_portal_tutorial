@@ -26,6 +26,7 @@ class WebhooksController < ApplicationController
     # Handle the event
     case event.type
     when 'checkout.session.completed'
+      debugger
       # If a user doesn't exist we definitely don't want to subscribe them
       return if !User.exists?(event.data.object.client_reference_id)
       # Payment is successful and the subscription is created.
