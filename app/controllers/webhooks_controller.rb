@@ -26,7 +26,6 @@ class WebhooksController < ApplicationController
     # Handle the event
     case event.type
     when 'checkout.session.completed'
-      debugger
       # If a user doesn't exist we definitely don't want to subscribe them
       return if !User.exists?(event.data.object.client_reference_id)
       # Payment is successful and the subscription is created.
@@ -45,7 +44,7 @@ class WebhooksController < ApplicationController
       subscription.update(
         current_period_start: Time.at(stripe_subscription.current_period_start).to_datetime,
         current_period_end: Time.at(stripe_subscription.current_period_end).to_datetime,
-        plan: stripe_subscription.plan.id,
+        plan_id: stripe_subscription.plan.id,
         interval: stripe_subscription.plan.interval,
         status: stripe_subscription.status,
       )
@@ -54,6 +53,24 @@ class WebhooksController < ApplicationController
       # The payment failed or the customer does not have a valid payment method.
       # The subscription becomes past_due. Notify the customer and send them to the
       # customer portal to update their payment information.
+      user = User.find_by(stripe_id: event.data.object.customer)
+      if user.exists?
+        SubscriptionMailer.with(user: :user).payment_failed.deliver_now
+      end
+    when 'customer.subscription.updated'
+      stripe_subscription = event.data.object
+      if stripe_subscription.cancel_at_period_end == true
+        subscription = Subscription.find_by(subscription_id: stripe_subscription.id)
+        if subscription.present?
+          subscription.update(
+            current_period_start: Time.at(stripe_subscription.current_period_start).to_datetime,
+            current_period_end: Time.at(stripe_subscription.current_period_end).to_datetime,
+            interval: stripe_subscription.plan.interval,
+            plan_id: stripe_subscription.plan.id,
+            status: stripe_subscription.status
+          )
+        end
+      end
     else
       puts "Unhandled event type: #{event.type}"
     end
@@ -63,7 +80,7 @@ class WebhooksController < ApplicationController
 
   def fullfill_order(checkout_session)
     # Find user and assign customer id from Stripe
-    user = User.find(id: checkout_session.client_reference_id)
+    user = User.find(checkout_session.client_reference_id)
     user.update(stripe_id: checkout_session.customer)
 
     # Retrieve new subscription via Stripe API using susbscription id
@@ -74,7 +91,7 @@ class WebhooksController < ApplicationController
       customer_id: stripe_subscription.customer,
       current_period_start: Time.at(stripe_subscription.current_period_start).to_datetime,
       current_period_end: Time.at(stripe_subscription.current_period_end).to_datetime,
-      plan: stripe_subscription.plan.id,
+      plan_id: stripe_subscription.plan.id,
       interval: stripe_subscription.plan.interval,
       status: stripe_subscription.status,
       subscription_id: stripe_subscription.id,

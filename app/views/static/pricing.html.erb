@@ -11,7 +11,6 @@
     to our private community.
   </p>
   <div class="grid grid-cols-2 gap-6">
-    <%= current_user %>
     <% if user_signed_in? && !current_user.subscribed? %>
       <%= form_tag purchase_checkouts_path, method: :post, data: { turbo: false } do %>
         <input type="hidden" name="price_id" value="<%= Rails.application.credentials.dig(:stripe, :pricing, :monthly) %>" />
@@ -24,22 +23,11 @@
     <% elsif user_signed_in? && current_user.subscribed? %>
       <div class="bg-yellow-100 p-6 rounded-lg text-center text-yellow-900 col-span-2">
         <p>
-          You're already subscribed. <%= button_to "Manage your subscription", billings_path, data: { turbo: false }, class: "underline" %>.
+          You're already subscribed. <%= button_to "Manage your subscription", billings_path, data: { turbo: false }, class: "underline" %>
         </p>
       </div>
     <% else %>
       <%= link_to "Subscribe for $9/mo", new_user_session_path, class: "px-3 py-4 bg-teal-600 block no-underline w-full text-center rounded font-bold text-white shadow-sm" %> <%= link_to "Subscribe for $90/yr", new_user_session_path, class: "px-3 py-4 bg-indigo-600 no-underline block w-full text-center rounded font-bold text-white shadow-sm" %>
-    <% end %>
-    <% if user_signed_in? && !current_user.subscribed? %>
-    <%# checkout buttons go here %>a
-    <% elsif user_signed_in? && current_user.subscribed? %>
-    <div class="bg-yellow-100 p-6 rounded-lg text-center text-yellow-900 col-span-2">
-      <p>
-        You're already subscribed. <%= button_to "Manage your subscription", billings_path, data: { turbo: false }, class: "underline" %>.
-      </p>b
-    </div>
-    <% else %>
-      <%# login buttons go here %>c
     <% end %>
   </div>
 </div>

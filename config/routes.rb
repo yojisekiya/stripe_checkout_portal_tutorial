@@ -12,6 +12,8 @@ Rails.application.routes.draw do
     get :pricing
   end
 
+  resources :billing, only: :create
+
   namespace :purchase do
     resources :checkouts
   end
